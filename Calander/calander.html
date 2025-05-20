@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Calendar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-image: url('img.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    
+    .calendar-container {
+      width: 400px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: white;
+    }
+    
+    .calendar-header {
+      background-color: #4361ee;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .month-year-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .month-control, .year-control {
+      display: flex;
+      align-items: center;
+    }
+    
+    .arrow {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      padding: 5px 10px;
+      transition: background-color 0.3s;
+      border-radius: 5px;
+    }
+    
+    .arrow:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .month-display, .year-display {
+      font-size: 1.2rem;
+      font-weight: bold;
+      min-width: 100px;
+      text-align: center;
+    }
+    
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+      background-color: #f1f1f1;
+      padding: 10px 0;
+    }
+    
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      padding: 10px;
+    }
+    
+    .day {
+      aspect-ratio: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background-color 0.3s;
+    }
+    
+    .day:hover:not(.empty) {
+      background-color: #f0f0f0;
+    }
+    
+    .empty {
+      visibility: hidden;
+    }
+    
+    .weekend {
+      color: red;
+    }
+    
+    .poya-day {
+      background-color: #4ade80;
+      color: white;
+    }
+    
+    .current-day {
+      background-color: #4361ee;
+      color: white;
+    }
+    
+    .current-day.poya-day {
+      background: linear-gradient(135deg, #4361ee 50%, #4ade80 50%);
+    }
+  </style>
+</head>
+<body>
+  <div class="calendar-container">
+    <div class="calendar-header">
+      <div class="month-control">
+        <button class="arrow prev-month">←</button>
+        <div class="month-display">January</div>
+        <button class="arrow next-month">→</button>
+      </div>
+      <div class="year-control">
+        <button class="arrow prev-year">←</button>
+        <div class="year-display">2025</div>
+        <button class="arrow next-year">→</button>
+      </div>
+    </div>
+    <div class="weekdays">
+      <div>Mon</div>
+      <div>Tue</div>
+      <div>Wed</div>
+      <div>Thu</div>
+      <div>Fri</div>
+      <div class="weekend">Sat</div>
+      <div class="weekend">Sun</div>
+    </div>
+    <div class="days" id="days-container">
+      <!-- Days will be filled by JavaScript -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Elements
+      const monthDisplay = document.querySelector('.month-display');
+      const yearDisplay = document.querySelector('.year-display');
+      const daysContainer = document.getElementById('days-container');
+      const prevMonthBtn = document.querySelector('.prev-month');
+      const nextMonthBtn = document.querySelector('.next-month');
+      const prevYearBtn = document.querySelector('.prev-year');
+      const nextYearBtn = document.querySelector('.next-year');
+      
+      // Current date
+      const today = new Date();
+      let currentMonth = today.getMonth();
+      let currentYear = today.getFullYear();
+      
+      // Array of month names
+      const months = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      // Poya days for demonstration (these would typically be calculated based on lunar calendar)
+      // For this demo, we'll mark the 15th of each month as a poya day
+      // In a real application, you would need to implement proper poya day calculations
+      function isPoyaDay(day, month, year) {
+        // In Sri Lanka, Poya days occur on full moon days
+        // For this demo, let's simplify and mark specific days
+        
+        // Example poya days for 2025 (this is just for demonstration)
+        const poyaDays = {
+          '0-14-2025': true,  // Jan 14, 2025
+          '1-13-2025': true,  // Feb 13, 2025
+          '2-14-2025': true,  // Mar 14, 2025
+          '3-13-2025': true,  // Apr 13, 2025
+          '4-12-2025': true,  // May 12, 2025
+          '5-11-2025': true,  // Jun 11, 2025
+          '6-10-2025': true,  // Jul 10, 2025
+          '7-9-2025': true,   // Aug 9, 2025
+          '8-7-2025': true,   // Sep 7, 2025
+          '9-7-2025': true,   // Oct 7, 2025
+          '10-5-2025': true,  // Nov 5, 2025
+          '11-5-2025': true,  // Dec 5, 2025
+        };
+        
+        const key = `${month}-${day}-${year}`;
+        return poyaDays[key] || false;
+      }
+      
+      // Function to update calendar
+      function updateCalendar() {
+        // Update the header
+        monthDisplay.textContent = months[currentMonth];
+        yearDisplay.textContent = currentYear;
+        
+        // Clear previous days
+        daysContainer.innerHTML = '';
+        
+        // Get the first day of the month (0 = Sunday, 1 = Monday, etc.)
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        
+        // Convert to Monday-first format (0 = Monday, 6 = Sunday)
+        const firstDayIndex = firstDay === 0 ? 6 : firstDay - 1;
+        
+        // Get the number of days in the month
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        
+        // Get the current date
+        const todayDate = new Date();
+        const isCurrentMonth = todayDate.getMonth() === currentMonth && todayDate.getFullYear() === currentYear;
+        const todayDay = isCurrentMonth ? todayDate.getDate() : -1;
+        
+        // Create empty slots for days before the first day of the month
+        for (let i = 0; i < firstDayIndex; i++) {
+          const emptyDay = document.createElement('div');
+          emptyDay.classList.add('day', 'empty');
+          daysContainer.appendChild(emptyDay);
+        }
+        
+        // Create days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dayElement = document.createElement('div');
+          dayElement.classList.add('day');
+          dayElement.textContent = day;
+          
+          // Check if it's a weekend
+          const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            dayElement.classList.add('weekend');
+          }
+          
+          // Check if it's today
+          if (day === todayDay) {
+            dayElement.classList.add('current-day');
+          }
+          
+          // Check if it's a poya day
+          if (isPoyaDay(day, currentMonth, currentYear)) {
+            dayElement.classList.add('poya-day');
+          }
+          
+          daysContainer.appendChild(dayElement);
+        }
+      }
+      
+      // Event listeners for navigation
+      prevMonthBtn.addEventListener('click', function() {
+        currentMonth--;
+        if (currentMonth < 0) {
+          currentMonth = 11;
+          currentYear--;
+        }
+        updateCalendar();
+      });
+      
+      nextMonthBtn.addEventListener('click', function() {
+        currentMonth++;
+        if (currentMonth > 11) {
+          currentMonth = 0;
+          currentYear++;
+        }
+        updateCalendar();
+      });
+      
+      prevYearBtn.addEventListener('click', function() {
+        currentYear--;
+        updateCalendar();
+      });
+      
+      nextYearBtn.addEventListener('click', function() {
+        currentYear++;
+        updateCalendar();
+      });
+      
+      // Initialize calendar
+      updateCalendar();
+    });
+  </script>
+</body>
+</html>
